@@ -6,29 +6,59 @@ from pybullet_control import PyBulletControl
 import numpy as np
 import threading
 import time
-from images import PORTS, queue_cam1, queue_cam2,server_thread, detected_points_queue_cam1, detected_points_queue_cam2, queue_images
+from images import StereoCameraServer, signal_handler
 from queue import Queue
+import signal
 
-# from networking import PiConnectionManager
-
+virtual_camera = False #broken in this version
 class PyBulletControlGUI:
     def __init__(self, master):
         self.master = master
         self.master.title("Robot Joint Control")
-        
 
+        # Initialize the PyBullet control once to avoid redundancy
+        self.pybullet_control = PyBulletControl()
+
+        # Initialize GUI elements
+        self.init_gui_elements()
+
+        # Start simulation update loop
+        self.update_simulation()
+
+        # Initialize the Stereo Camera Server
+        self.stereo_server = StereoCameraServer("0.0.0.0", [8082, 8083], 528, 25)
+
+        # Start server threads for each port - assuming `start_server_thread` is correctly implemented in `StereoCameraServer`
+        self.start_server_threads()
+
+        # Attempt to apply the theme; handle failure gracefully
         try:
             self.master.tk.call('source', 'azure.tcl')
             self.master.tk.call("set_theme", "light")
         except tk.TclError:
-            pass
+            print("Failed to apply theme, defaulting to standard Tkinter appearance.")
 
-        self.pybullet_control = PyBulletControl()
-        # self.network_control = PiConnectionManager()
-        self.init_gui_elements()
-        self.update_simulation()
-        self.camera_update_thread = threading.Thread(target=self.capture_images_thread, daemon=True)
-        self.camera_update_thread.start()
+        # # Start a camera update thread - no need to start it twice as in the original code
+        if(virtual_camera):
+            self.camera_update_thread = threading.Thread(target=self.capture_images_thread, daemon=True)
+            self.camera_update_thread.start()
+
+    def start_server_threads(self):
+        for port in self.stereo_server.ports:
+            t = threading.Thread(target=self.stereo_server.server_thread, args=(port,))
+            t.daemon = True
+            t.start()
+
+    def update_simulation(self):
+        self.pybullet_control.step_simulation()
+
+        # Check if stereo_server is defined before accessing it
+        if hasattr(self, 'stereo_server') and not self.stereo_server.queue_images.empty():
+            print(self.stereo_server.queue_images.get_nowait()[1:])
+        
+        # Schedule the next update
+        self.master.after(50, self.update_simulation)
+
     def init_gui_elements(self):
         style = ttk.Style()
         style.configure("TFrame", background="#f0f0f0")
@@ -70,9 +100,12 @@ class PyBulletControlGUI:
 
     def capture_images_thread(self):
         while True:
-            real_camera_tuple = queue_images.get_nowait()
-            camera_images = np.array(self.pybullet_control.capture_camera_image(),real_camera_tuple[0])
-            self.update_camera_images(camera_images)
+            if(not self.stereo_server.queue_images.empty()):
+                real_camera_tuple = self.stereo_server.queue_images.get_nowait()
+                camera_images = np.array(self.pybullet_control.capture_camera_image(), real_camera_tuple[0])
+                self.master.after(0, lambda: self.update_camera_images(camera_images))
+                print(real_camera_tuple[1:])
+            
 
     def capture_and_display_images(self):
         camera_images = np.array(self.pybullet_control.capture_camera_image())
@@ -136,26 +169,15 @@ class PyBulletControlGUI:
     def update_desired_position_display(self, x, y, z):
         self.desired_position_label.config(text=f"Desired Position: X={x*1000:.2f} mm, Y={y*1000:.2f} mm, Z={z*1000:.2f} mm")
 
-    def update_simulation(self):
-        self.pybullet_control.step_simulation()
-        self.master.after(50, self.update_simulation)
+    
     
 
 def main():
     root = tk.Tk()
     app = PyBulletControlGUI(root)
-    queue_images = Queue()
-    # Start server threads for both cameras, passing the correct queues
-    thread_cam1 = threading.Thread(target=server_thread, args=(PORTS[0], detected_points_queue_cam1, detected_points_queue_cam2))
-    thread_cam2 = threading.Thread(target=server_thread, args=(PORTS[1], detected_points_queue_cam2, detected_points_queue_cam1,images_queue=queue_images,depth_offset=0))
-    
     root.mainloop()
     
-    thread_cam1.start()
-    thread_cam2.start()
-
-    thread_cam1.join()
-    thread_cam2.join()
+   
 
 if __name__ == "__main__":
     main()

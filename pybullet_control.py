@@ -5,7 +5,7 @@ from networking import send_joint_positions_to_pi
 import cv2
 import time
 
-send_to_pi = False
+send_to_pi = True
 
 class PyBulletControl:
     
@@ -325,7 +325,7 @@ class PyBulletControl:
             self.set_position_with_ik_and_constraints(x, y, z)
             
             # Step the simulation to reflect the update
-            # self.step_simulation()
+            self.step_simulation()
             
             # Wait before the next step
             time.sleep(step_duration)

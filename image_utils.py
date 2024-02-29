@@ -2,6 +2,31 @@ import cv2
 import numpy as np
 
 
+def calculate_depth(focal_length, baseline, point_cam1, point_cam2):
+    """
+    Calculate the depth of a point from the stereo camera setup.
+
+    Parameters:
+    - focal_length: Focal length of the cameras (assumed to be the same for both).
+    - baseline: Distance between the two camera centers.
+    - point_cam1: The (x, y) coordinates of the point in the left camera image.
+    - point_cam2: The (x, y) coordinates of the point in the right camera image.
+
+    Returns:
+    - Depth of the point from the camera setup.
+    """
+    # Extract the x-coordinates
+    x1, _ = point_cam1
+    x2, _ = point_cam2
+
+    # Calculate disparity
+    disparity = abs(x1 - x2)  # Use abs to ensure the disparity is a positive value
+
+    # Calculate depth
+    depth = (focal_length * baseline) / disparity
+
+    return depth
+
 def compute_depth_map(imgL, imgR, focal_length, baseline):
     """
     Compute and colorize the depth map from stereo images for human readability.

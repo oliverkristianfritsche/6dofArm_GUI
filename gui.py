@@ -6,6 +6,9 @@ from pybullet_control import PyBulletControl
 import numpy as np
 import threading
 import time
+from images import PORTS, queue_cam1, queue_cam2,server_thread, detected_points_queue_cam1, detected_points_queue_cam2, queue_images
+from queue import Queue
+
 # from networking import PiConnectionManager
 
 class PyBulletControlGUI:
@@ -55,9 +58,8 @@ class PyBulletControlGUI:
 
         self.set_dance_button = ttk.Button(self.master, text="Dance", command=self.pybullet_control.draw_sine_wave_around_z)
         self.set_dance_button.pack(pady=10)
-        self.pybullet_control.create_camera([0, .5, 0.1], [0, 0, .1], [0, 0, 1])
-        self.pybullet_control.create_camera([.5, 0, 0.1], [0, 0, 0.1], [0, 0, 1])
-        self.pybullet_control.create_camera([0, 0, .6], [0, 0, 0], [0, 1, 0]) #this one renders strange
+        self.pybullet_control.create_camera([-0.1625, .15, 0.036], [-0.1625, 0, 0.036], [0, 0, 1])
+        self.pybullet_control.create_camera([-.1375, .15, 0.036], [-.1375, 0, 0.036], [0, 0, 1])
         # Image display areas for the camera images
         self.camera_image_labels = []
         for i in range(len(self.pybullet_control.cameras)):
@@ -68,7 +70,8 @@ class PyBulletControlGUI:
 
     def capture_images_thread(self):
         while True:
-            camera_images = np.array(self.pybullet_control.capture_camera_image())
+            real_camera_tuple = queue_images.get_nowait()
+            camera_images = np.array(self.pybullet_control.capture_camera_image(),real_camera_tuple[0])
             self.update_camera_images(camera_images)
 
     def capture_and_display_images(self):
@@ -141,7 +144,18 @@ class PyBulletControlGUI:
 def main():
     root = tk.Tk()
     app = PyBulletControlGUI(root)
+    queue_images = Queue()
+    # Start server threads for both cameras, passing the correct queues
+    thread_cam1 = threading.Thread(target=server_thread, args=(PORTS[0], detected_points_queue_cam1, detected_points_queue_cam2))
+    thread_cam2 = threading.Thread(target=server_thread, args=(PORTS[1], detected_points_queue_cam2, detected_points_queue_cam1,images_queue=queue_images,depth_offset=0))
+    
     root.mainloop()
+    
+    thread_cam1.start()
+    thread_cam2.start()
+
+    thread_cam1.join()
+    thread_cam2.join()
 
 if __name__ == "__main__":
     main()

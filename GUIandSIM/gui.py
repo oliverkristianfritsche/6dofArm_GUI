@@ -67,7 +67,7 @@ class PyBulletControlGUI:
         self.coordinate_frame = ttk.Frame(self.master, padding="10 10 10 10")
         self.coordinate_frame.pack(fill='x', expand=True)
         
-        self.desired_position_label = ttk.Label(self.master, text="Desired Position: X=0.00 mm, Y=0.00 mm, Z=500.00 mm", font=("Arial", 12))
+        self.desired_position_label = ttk.Label(self.master, text="Desired Position: X=0.00 m\nY=0.00 mm\nZ=500.00 mm", font=("Arial", 12))
         self.desired_position_label.pack(pady=10)
 
         self.coordinates = {'x': 0, 'y': 0, 'z': 0.5}
@@ -167,7 +167,7 @@ class PyBulletControlGUI:
 
     
     def update_desired_position_display(self, x, y, z):
-        self.desired_position_label.config(text=f"Desired Position: X={x*1000:.2f} mm, Y={y*1000:.2f} mm, Z={z*1000:.2f} mm")
+        self.desired_position_label.config(text=f"Desired Position:\nX={x*1000:.2f} mm\nY={y*1000:.2f} mm\nZ={z*1000:.2f} mm")
 
     
     

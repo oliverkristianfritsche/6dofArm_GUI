@@ -5,7 +5,7 @@ from networking import send_joint_positions_to_pi
 import cv2
 import time
 
-send_to_pi = True
+send_to_pi = False
 
 class PyBulletControl:
     
@@ -16,7 +16,7 @@ class PyBulletControl:
         self.initialize_simulation()
         
 
-    def initialize_simulation(self,working_path="descriptions/armsimplified-cigarette-new/armsimplified-cigarette-new.urdf"):
+    def initialize_simulation(self,working_path="../descriptions/armsimplified-cigarette-new/armsimplified-cigarette-new.urdf"):
         self.physicsClient = p.connect(p.GUI)
         p.setAdditionalSearchPath(pybullet_data.getDataPath())
         p.setGravity(0, 0, -10)
@@ -63,14 +63,7 @@ class PyBulletControl:
         return images
 
     def draw_grid_mm(self, grid_size=1, step=0.1, line_color=[0, 0, 0, 0.5]):  # step=0.1 for 100mm spacing
-        """
-        Draw a grid on the floor with millimeter precision.
 
-        Parameters:
-        - grid_size: The length of each side of the grid in meters.
-        - step: The distance between adjacent lines in the grid in meters (0.1 for 100mm).
-        - line_color: The color of the grid lines as [R, G, B, Alpha], values between 0 and 1.
-        """
         # Adjustments for finer grid lines
         for y in np.arange(-grid_size, grid_size + step, step):
             p.addUserDebugLine([-grid_size, y, 0.001], [grid_size, y, 0.001], lineColorRGB=line_color[:3], lineWidth=1, lifeTime=0)
@@ -79,13 +72,7 @@ class PyBulletControl:
 
   
     def create_floor(self, extent=1000, height=-0.001,color=[0,0,0,1]):  # A large extent ensures the floor covers the whole area
-        """
-        Create a white floor by adding a large, thin box.
-
-        Parameters:
-        - extent: The half-extent of the floor box, essentially controlling its size.
-        - height: The height at which the floor is placed, slightly below 0 to avoid z-fighting with the grid.
-        """
+    
         floor_col_shape = p.createCollisionShape(p.GEOM_BOX, halfExtents=[extent, extent, 0.001])
         floor_vis_shape = p.createVisualShape(p.GEOM_BOX, halfExtents=[extent, extent, 0.001], rgbaColor=color)
         p.createMultiBody(baseMass=0, baseCollisionShapeIndex=floor_col_shape, baseVisualShapeIndex=floor_vis_shape, basePosition=[0, 0, height])

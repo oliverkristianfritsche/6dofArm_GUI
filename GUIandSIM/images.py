@@ -76,7 +76,6 @@ class StereoCameraServer:
                 nparr = np.frombuffer(frame_data, np.uint8)
                 img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
                 
-                # Implement your object detection logic here
                 detected_points = detect_white_spheroids(img, show=False)
                 if detected_points is not None:
                     
@@ -93,7 +92,7 @@ class StereoCameraServer:
                         avg_depth = sum(list(self.average_depth_values.queue)) / self.average_depth_values.qsize() if self.average_depth_values.qsize() > 0 else 0
                         cv2.putText(img, f"Depth: {avg_depth:.2f} mm", (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
                         if port == 8082:
-                            self.queue_images.put((img, avg_depth, self.depth_offset, (x, y)))
+                            self.queue_images.put((img, avg_depth, self.depth_offset, (x, y),other_point))
 
                 if port == 8082:
                     cv2.imshow(f"Camera {port}", img)
